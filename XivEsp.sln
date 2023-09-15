@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.7.34031.279
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "XivEsp", "XivEsp\XivEsp.csproj", "{0B77C906-CA98-411E-834D-B341A380B6C3}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0B77C906-CA98-411E-834D-B341A380B6C3}.Debug|x64.ActiveCfg = Debug|x64
+		{0B77C906-CA98-411E-834D-B341A380B6C3}.Debug|x64.Build.0 = Debug|x64
+		{0B77C906-CA98-411E-834D-B341A380B6C3}.Release|x64.ActiveCfg = Release|x64
+		{0B77C906-CA98-411E-834D-B341A380B6C3}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {8D9A80D6-339D-4BAD-9B39-2E2E6EB3BCE3}
+	EndGlobalSection
+EndGlobal

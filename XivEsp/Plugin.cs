@@ -8,9 +8,8 @@ using System.Numerics;
 using System.Text.RegularExpressions;
 
 using Dalamud.Game.ClientState.Objects.Types;
-using Dalamud.Game.Gui;
 using Dalamud.Game.Text.SeStringHandling;
-using Dalamud.Interface;
+using Dalamud.Interface.Utility;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
@@ -51,7 +50,7 @@ public class Plugin: IDalamudPlugin {
 	[PluginService] public static IObjectTable GameObjects { get; private set; } = null!;
 	[PluginService] public static IGameGui GameGui { get; private set; } = null!;
 	[PluginService] public static ICommandManager CommandManager { get; private set; } = null!;
-	[PluginService] public static ChatGui ChatGui { get; private set; } = null!;
+	[PluginService] public static IChatGui ChatGui { get; private set; } = null!;
 	#endregion
 
 	public Plugin() {

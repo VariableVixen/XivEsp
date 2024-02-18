@@ -1,5 +1,3 @@
-namespace PrincessRTFM.XivEsp;
-
 using System;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
@@ -8,23 +6,43 @@ using System.Numerics;
 using System.Text.RegularExpressions;
 
 using Dalamud.Game.ClientState.Objects.Types;
+using Dalamud.Game.Gui.Dtr;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Interface.Utility;
 using Dalamud.IoC;
 using Dalamud.Plugin;
+using Dalamud.Plugin.Ipc;
 using Dalamud.Plugin.Services;
 
 using DotNet.Globbing;
 
 using ImGuiNET;
 
+namespace PrincessRTFM.XivEsp;
+
 public class Plugin: IDalamudPlugin {
 	public const string
-		NoticeOnlyOneSearchAllowed = " Clears other search patterns on use.",
+		Name = "XivEsp",
 		CommandSetSubstring = "/esp",
 		CommandSetGlob = "/espg",
 		CommandSetRegex = "/espr",
-		CommandClearSearch = "/espc";
+		CommandClearSearch = "/espc",
+		NoticeClickStatusToClearSearch = "Click to clear your current search.",
+		NoticeUsageReminder = $"No search is currently active.\nUse {CommandSetSubstring}, {CommandSetGlob}, or {CommandSetRegex} to set a substring, glob, or regex search.",
+		NoticeOnlyOneSearchAllowed = " Clears other search patterns on use.",
+		StatusIndicatorSubstring = "S",
+		StatusIndicatorGlob = "G",
+		StatusIndicatorRegex = "R",
+		StatusIndicatorNone = "N",
+		IpcNameGetSubstringSearch = $"{Name}.GetSubstring", // void => string
+		IpcNameGetGlobSearch = $"{Name}.GetGlob", // void => string
+		IpcNameGetRegexSearch = $"{Name}.GetRegex", // void => string
+		IpcNameGetUnifiedSearch = $"{Name}.GetSearch", // void => string [returns indicator letter defined above, colon, pattern - if any search present; indicator for no search alone - when no search present]
+		IpcNameHasAnySearch = $"{Name}.HasAnySearch", // void => bool
+		IpcNameClearSearch = $"{Name}.ClearSearch", // void => void [action, not func]
+		IpcNameSetSubstringSearch = $"{Name}.SetSubstring", // string => void [action, not func]
+		IpcNameSetGlobSearch = $"{Name}.SetGlob", // string => void [action, not func]
+		IpcNameSetRegexSearch = $"{Name}.SetRegex"; // string => void [action, not func]
 	public const ImGuiWindowFlags OverlayWindowFlags = ImGuiWindowFlags.None
 		| ImGuiWindowFlags.NoDecoration // NoTitleBar, NoResize, NoScrollbar, NoCollapse
 		| ImGuiWindowFlags.NoSavedSettings
@@ -33,7 +51,7 @@ public class Plugin: IDalamudPlugin {
 		| ImGuiWindowFlags.NoFocusOnAppearing
 		| ImGuiWindowFlags.NoBackground
 		| ImGuiWindowFlags.NoDocking;
-	private const StringComparison nocase = StringComparison.OrdinalIgnoreCase;
+	public const StringComparison NoCase = StringComparison.OrdinalIgnoreCase;
 
 	public static readonly ImmutableArray<char> GlobSpecialChars = ImmutableArray.Create('*', '?', '[', ']');
 
@@ -43,7 +61,18 @@ public class Plugin: IDalamudPlugin {
 	public static readonly uint DrawColourLabelBackground = ImGui.ColorConvertFloat4ToU32(new(0, 0, 0, 0.45f));
 	public static readonly uint DrawColourLabelText = ImGui.ColorConvertFloat4ToU32(new(0.8f, 0.8f, 0.8f, 1));
 
-	public string Name { get; } = typeof(Plugin).Assembly.GetName().Name ?? "XivEsp";
+	private readonly ICallGateProvider<string>
+		ipcGetSubstring,
+		ipcGetGlob,
+		ipcGetRegex,
+		ipcGetUnified;
+	private readonly ICallGateProvider<bool> ipcHasAnySearch;
+	private readonly ICallGateProvider<object>
+		ipcClearSearch;
+	private readonly ICallGateProvider<string, object>
+		ipcSetSubstring,
+		ipcSetGlob,
+		ipcSetRegex;
 
 	#region Services
 	[PluginService] public static DalamudPluginInterface Interface { get; private set; } = null!;
@@ -51,9 +80,32 @@ public class Plugin: IDalamudPlugin {
 	[PluginService] public static IGameGui GameGui { get; private set; } = null!;
 	[PluginService] public static ICommandManager CommandManager { get; private set; } = null!;
 	[PluginService] public static IChatGui ChatGui { get; private set; } = null!;
+
+	public static DtrBarEntry StatusEntry { get; private set; } = null!;
+	public static string StatusText {
+		get => StatusEntry?.Text?.TextValue ?? string.Empty;
+		set {
+			if (StatusEntry is not null)
+				StatusEntry.Text = value;
+		}
+	}
+	public static string StatusTitle {
+		get => StatusEntry?.Tooltip?.TextValue ?? string.Empty;
+		set {
+			if (StatusEntry is not null)
+				StatusEntry.Tooltip = value;
+		}
+	}
+	public static Action? StatusAction {
+		get => StatusEntry?.OnClick;
+		set {
+			if (StatusEntry is not null)
+				StatusEntry.OnClick = value;
+		}
+	}
 	#endregion
 
-	public Plugin() {
+	public Plugin(IDtrBar dtr) {
 		CommandManager.AddHandler(CommandSetSubstring, new(this.onCommand) {
 			ShowInHelp = true,
 			HelpMessage = "Set a case-insensitive substring to search for matchingly-named nearby objects, or display your current search pattern and type." + NoticeOnlyOneSearchAllowed,
@@ -71,6 +123,36 @@ public class Plugin: IDalamudPlugin {
 			HelpMessage = "Clear your current ESP search and stop tagging things.",
 		});
 		Interface.UiBuilder.Draw += this.onDraw;
+		StatusEntry ??= dtr.Get(Name);
+		StatusEntry.Shown = true;
+		this.UpdateStatus();
+
+		this.ipcGetSubstring = Interface.GetIpcProvider<string>(IpcNameGetSubstringSearch);
+		this.ipcGetSubstring.RegisterFunc(this.GetSubstringSearch);
+
+		this.ipcGetGlob = Interface.GetIpcProvider<string>(IpcNameGetGlobSearch);
+		this.ipcGetGlob.RegisterFunc(this.GetGlobSearch);
+
+		this.ipcGetRegex = Interface.GetIpcProvider<string>(IpcNameGetRegexSearch);
+		this.ipcGetRegex.RegisterFunc(this.GetRegexSearch);
+
+		this.ipcGetUnified = Interface.GetIpcProvider<string>(IpcNameGetUnifiedSearch);
+		this.ipcGetUnified.RegisterFunc(this.GetUnifiedSearch);
+
+		this.ipcHasAnySearch = Interface.GetIpcProvider<bool>(IpcNameHasAnySearch);
+		this.ipcHasAnySearch.RegisterFunc(this.HasAnySearch);
+
+		this.ipcClearSearch = Interface.GetIpcProvider<object>(IpcNameClearSearch);
+		this.ipcClearSearch.RegisterAction(this.ClearSearch);
+
+		this.ipcSetSubstring = Interface.GetIpcProvider<string, object>(IpcNameSetSubstringSearch);
+		this.ipcSetSubstring.RegisterAction(this.SetSubstringSearch);
+
+		this.ipcSetGlob = Interface.GetIpcProvider<string, object>(IpcNameSetGlobSearch);
+		this.ipcSetGlob.RegisterAction(this.SetGlobSearch);
+
+		this.ipcSetRegex = Interface.GetIpcProvider<string, object>(IpcNameSetRegexSearch);
+		this.ipcSetRegex.RegisterAction(this.SetRegexSearch);
 	}
 
 	public bool CheckGameObject(GameObject thing) => GameObject.IsValid(thing) && thing.IsTargetable && !thing.IsDead && this.CheckMatch(thing);
@@ -81,7 +163,7 @@ public class Plugin: IDalamudPlugin {
 		ImGui.SetNextWindowPos(gameWindow.Pos);
 		ImGui.SetNextWindowSize(gameWindow.Size);
 
-		if (ImGui.Begin($"###{this.Name}Overlay", OverlayWindowFlags)) {
+		if (ImGui.Begin($"###{Name}Overlay", OverlayWindowFlags)) {
 			ImGuiStylePtr style = ImGui.GetStyle();
 			ImDrawListPtr draw = ImGui.GetWindowDrawList();
 			Vector2 drawable = gameWindow.Size - style.DisplaySafeAreaPadding;
@@ -111,16 +193,17 @@ public class Plugin: IDalamudPlugin {
 		ImGui.End();
 	}
 	private void onCommand(string command, string arguments) {
-		if (command.Equals(CommandClearSearch, nocase)) {
+		if (command.Equals(CommandClearSearch, NoCase)) {
 			this.Substring = null;
 			this.GlobPattern = null;
 			this.RegexPattern = null;
-			this.ShowUpdatedSearch();
+			this.UpdateStatus();
+			this.PrintUpdatedSearch();
 			return;
 		}
 
 		if (string.IsNullOrEmpty(arguments)) {
-			this.ShowCurrentSearch();
+			this.PrintCurrentSearch();
 			return;
 		}
 
@@ -142,12 +225,69 @@ public class Plugin: IDalamudPlugin {
 					this.GlobPattern = null;
 					break;
 			}
-			this.ShowUpdatedSearch();
+			this.UpdateStatus();
+			this.PrintUpdatedSearch();
 		}
 		catch (ArgumentException) {
-			this.InvalidSearchPattern();
+			InvalidSearchPattern();
 		}
 	}
+
+	public void UpdateStatus() {
+		string
+			substring = this.Substring,
+			glob = this.GlobPattern,
+			regex = this.RegexPattern;
+		if (!string.IsNullOrEmpty(substring)) {
+			StatusText = $"{Name}: {StatusIndicatorSubstring}";
+			StatusTitle = $"Substring search:\n{substring}\n{NoticeClickStatusToClearSearch}";
+			StatusAction = this.ClearSearch;
+		}
+		else if (!string.IsNullOrEmpty(glob)) {
+			StatusText = $"{Name}: {StatusIndicatorGlob}";
+			StatusTitle = $"Glob search:\n{glob}\n{NoticeClickStatusToClearSearch}";
+			StatusAction = this.ClearSearch;
+		}
+		else if (!string.IsNullOrEmpty(regex)) {
+			StatusText = $"{Name}: {StatusIndicatorRegex}";
+			StatusTitle = $"Regex search:\n{regex}\n{NoticeClickStatusToClearSearch}";
+			StatusAction = this.ClearSearch;
+		}
+		else {
+			StatusText = $"{Name}: {StatusIndicatorNone}";
+			StatusTitle = NoticeUsageReminder;
+			StatusAction = this.PrintCurrentSearch;
+		}
+	}
+
+	#region IPC functions
+
+	public string GetSubstringSearch() => this.Substring;
+	public string GetGlobSearch() => this.GlobPattern;
+	public string GetRegexSearch() => this.RegexPattern;
+	public string GetUnifiedSearch() {
+		string
+			substring = this.Substring,
+			glob = this.GlobPattern,
+			regex = this.RegexPattern;
+		return !string.IsNullOrEmpty(substring)
+			? $"{StatusIndicatorSubstring}:{substring}"
+			: !string.IsNullOrEmpty(glob)
+			? $"{StatusIndicatorGlob}:{glob}"
+			: !string.IsNullOrEmpty(regex)
+			? $"{StatusIndicatorRegex}:{regex}"
+			: StatusIndicatorNone;
+	}
+
+	public bool HasAnySearch() => !string.IsNullOrEmpty(this.Substring) || !string.IsNullOrEmpty(this.GlobPattern) || !string.IsNullOrEmpty(this.RegexPattern);
+
+	public void ClearSearch() => this.onCommand(CommandClearSearch, string.Empty);
+
+	public void SetSubstringSearch(string pattern) => this.onCommand(CommandSetSubstring, pattern);
+	public void SetGlobSearch(string pattern) => this.onCommand(CommandSetGlob, pattern);
+	public void SetRegexSearch(string pattern) => this.onCommand(CommandSetRegex, pattern);
+
+	#endregion
 
 	#region Chat utilities
 	public const ushort
@@ -159,18 +299,18 @@ public class Plugin: IDalamudPlugin {
 		ChatColourSearchCleared = 22,
 		ChatColourNoSearchFound = 14,
 		ChatColourInvalidSearchPattern = 17;
-	internal SeStringBuilder startChatMessage() => new SeStringBuilder().AddUiForeground(ChatColourPluginName).AddText($"[{this.Name}]").AddUiForegroundOff();
+	internal static SeStringBuilder StartChatMessage() => new SeStringBuilder().AddUiForeground(ChatColourPluginName).AddText($"[{Name}]").AddUiForegroundOff();
 
-	public void InvalidSearchPattern() {
-		ChatGui.PrintError(this.startChatMessage()
+	public static void InvalidSearchPattern() {
+		ChatGui.PrintError(StartChatMessage()
 			.AddUiForeground(ChatColourInvalidSearchPattern)
 			.AddText(" Invalid pattern, please check your syntax")
 			.AddUiForegroundOff()
 			.BuiltString
 		);
 	}
-	public void ShowUpdatedSearch() {
-		SeStringBuilder msg = this.startChatMessage();
+	public void PrintUpdatedSearch() {
+		SeStringBuilder msg = StartChatMessage();
 		if (!string.IsNullOrEmpty(this.Substring)) {
 			msg
 				.AddText(" Set substring pattern: ")
@@ -209,8 +349,8 @@ public class Plugin: IDalamudPlugin {
 		}
 		ChatGui.Print(msg.BuiltString);
 	}
-	public void ShowCurrentSearch() {
-		SeStringBuilder msg = this.startChatMessage();
+	public void PrintCurrentSearch() {
+		SeStringBuilder msg = StartChatMessage();
 		if (!string.IsNullOrEmpty(this.Substring)) {
 			msg
 				.AddUiForeground(ChatColourSearchSubstring)
@@ -254,7 +394,7 @@ public class Plugin: IDalamudPlugin {
 	public bool CheckMatch(string name) {
 		return !string.IsNullOrEmpty(name)
 			&& (!string.IsNullOrEmpty(this.Substring)
-				? name.Contains(this.Substring, nocase)
+				? name.Contains(this.Substring, NoCase)
 				: this.Glob is not null
 				? this.Glob.IsMatch(name)
 				: this.Regex is not null && this.Regex.IsMatch(name)
@@ -297,6 +437,7 @@ public class Plugin: IDalamudPlugin {
 			CommandManager.RemoveHandler(CommandSetRegex);
 			CommandManager.RemoveHandler(CommandClearSearch);
 			Interface.UiBuilder.Draw -= this.onDraw;
+			StatusEntry.Dispose();
 		}
 	}
 	public void Dispose() {

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Numerics;
 using System.Text.RegularExpressions;
 
+using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Game.Gui.Dtr;
 using Dalamud.Game.Text.SeStringHandling;
@@ -53,6 +54,15 @@ public class Plugin: IDalamudPlugin {
 		| ImGuiWindowFlags.NoDocking;
 	public const StringComparison NoCase = StringComparison.OrdinalIgnoreCase;
 
+	private static readonly ConditionFlag[] disabledConditions = new ConditionFlag[] {
+		ConditionFlag.OccupiedInCutSceneEvent,
+		ConditionFlag.WatchingCutscene,
+		ConditionFlag.WatchingCutscene78,
+		ConditionFlag.BetweenAreas,
+		ConditionFlag.BetweenAreas51,
+		ConditionFlag.CreatingCharacter,
+	};
+
 	public static readonly ImmutableArray<char> GlobSpecialChars = ImmutableArray.Create('*', '?', '[', ']');
 
 	public const float DrawCircleRadius = 11;
@@ -80,6 +90,7 @@ public class Plugin: IDalamudPlugin {
 	[PluginService] public static IGameGui GameGui { get; private set; } = null!;
 	[PluginService] public static ICommandManager CommandManager { get; private set; } = null!;
 	[PluginService] public static IChatGui ChatGui { get; private set; } = null!;
+	[PluginService] public static ICondition Condition { get; private set; } = null!;
 
 	public static DtrBarEntry StatusEntry { get; private set; } = null!;
 	public static string StatusText {
@@ -158,6 +169,9 @@ public class Plugin: IDalamudPlugin {
 	public bool CheckGameObject(GameObject thing) => GameObject.IsValid(thing) && thing.IsTargetable && !thing.IsDead && this.CheckMatch(thing);
 
 	private void onDraw() {
+		if (Condition.Any(disabledConditions))
+			return;
+
 		ImGuiViewportPtr gameWindow = ImGuiHelpers.MainViewport;
 		ImGuiHelpers.ForceNextWindowMainViewport();
 		ImGui.SetNextWindowPos(gameWindow.Pos);

@@ -2,7 +2,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<Product>XivEsp</Product>
-		<Version>1.2.1</Version>
+		<Version>1.3.0</Version>
 		<Description>Searches for objects by name and adds visual tags to show where they are, so you can find the thing you're looking for.</Description>
 		<Copyright>Copyleft VariableVixen 2023</Copyright>
 	</PropertyGroup>

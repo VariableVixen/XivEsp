@@ -6,6 +6,7 @@ using System.Numerics;
 using System.Text.RegularExpressions;
 
 using Dalamud.Game.ClientState.Conditions;
+using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Game.Gui.Dtr;
 using Dalamud.Game.Text.SeStringHandling;
@@ -27,6 +28,7 @@ public class Plugin: IDalamudPlugin {
 		CommandSetSubstring = "/esp",
 		CommandSetGlob = "/espg",
 		CommandSetRegex = "/espr",
+		CommandSearchForTargetSubstring = "/espt",
 		CommandClearSearch = "/espc",
 		NoticeClickStatusToClearSearch = "Click to clear your current search.",
 		NoticeUsageReminder = $"No search is currently active.\nUse {CommandSetSubstring}, {CommandSetGlob}, or {CommandSetRegex} to set a substring, glob, or regex search.",
@@ -91,6 +93,7 @@ public class Plugin: IDalamudPlugin {
 	[PluginService] public static ICommandManager CommandManager { get; private set; } = null!;
 	[PluginService] public static IChatGui ChatGui { get; private set; } = null!;
 	[PluginService] public static ICondition Condition { get; private set; } = null!;
+	[PluginService] public static ITargetManager Target { get; private set; } = null!;
 
 	public static DtrBarEntry StatusEntry { get; private set; } = null!;
 	public static string StatusText {
@@ -128,6 +131,10 @@ public class Plugin: IDalamudPlugin {
 		CommandManager.AddHandler(CommandSetRegex, new(this.onCommand) {
 			ShowInHelp = true,
 			HelpMessage = "Set a case-insensitive regex pattern to search for matchingly-named nearby objects, or display your current search pattern and type." + NoticeOnlyOneSearchAllowed,
+		});
+		CommandManager.AddHandler(CommandSearchForTargetSubstring, new(this.onCommand) {
+			ShowInHelp = true,
+			HelpMessage = "Set your search to the name of your current (hard or soft) target. Uses a plain substring." + NoticeOnlyOneSearchAllowed,
 		});
 		CommandManager.AddHandler(CommandClearSearch, new(this.onCommand) {
 			ShowInHelp = true,
@@ -216,7 +223,7 @@ public class Plugin: IDalamudPlugin {
 			return;
 		}
 
-		if (string.IsNullOrEmpty(arguments)) {
+		if (string.IsNullOrEmpty(arguments) && command is not CommandSearchForTargetSubstring) {
 			this.PrintCurrentSearch();
 			return;
 		}
@@ -238,12 +245,24 @@ public class Plugin: IDalamudPlugin {
 					this.Substring = null;
 					this.GlobPattern = null;
 					break;
+				case CommandSearchForTargetSubstring: {
+						if (Target.SoftTarget is GameObject soft)
+							this.onCommand(CommandSetSubstring, soft.Name.TextValue);
+						else if (Target.Target is GameObject hard)
+							this.onCommand(CommandSetSubstring, hard.Name.TextValue);
+						else
+							PrintMissingTarget();
+					}
+					return;
+				default: // unpossible!
+					PrintDevFuckedUp();
+					break;
 			}
 			this.UpdateStatus();
 			this.PrintUpdatedSearch();
 		}
 		catch (ArgumentException) {
-			InvalidSearchPattern();
+			PrintInvalidSearch();
 		}
 	}
 
@@ -312,13 +331,21 @@ public class Plugin: IDalamudPlugin {
 		ChatColourGlobNotSubstring = 12,
 		ChatColourSearchCleared = 22,
 		ChatColourNoSearchFound = 14,
-		ChatColourInvalidSearchPattern = 17;
+		ChatColourError = 17;
 	internal static SeStringBuilder StartChatMessage() => new SeStringBuilder().AddUiForeground(ChatColourPluginName).AddText($"[{Name}]").AddUiForegroundOff();
 
-	public static void InvalidSearchPattern() {
+	public static void PrintInvalidSearch() {
 		ChatGui.PrintError(StartChatMessage()
-			.AddUiForeground(ChatColourInvalidSearchPattern)
+			.AddUiForeground(ChatColourError)
 			.AddText(" Invalid pattern, please check your syntax")
+			.AddUiForegroundOff()
+			.BuiltString
+		);
+	}
+	public static void PrintMissingTarget() {
+		ChatGui.PrintError(StartChatMessage()
+			.AddUiForeground(ChatColourError)
+			.AddText(" You don't have a target")
 			.AddUiForegroundOff()
 			.BuiltString
 		);
@@ -393,6 +420,14 @@ public class Plugin: IDalamudPlugin {
 				.AddUiForegroundOff();
 		}
 		ChatGui.Print(msg.BuiltString);
+	}
+	public static void PrintDevFuckedUp() {
+		ChatGui.Print(StartChatMessage()
+			.AddUiForeground(ChatColourError)
+			.AddText(" Internal error: unexpected state")
+			.AddUiForegroundOff()
+			.BuiltString
+		);
 	}
 
 	#endregion

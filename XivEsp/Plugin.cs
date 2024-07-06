@@ -30,6 +30,7 @@ public class Plugin: IDalamudPlugin {
 		CommandSetRegex = "/espr",
 		CommandSearchForTargetSubstring = "/espt",
 		CommandClearSearch = "/espc",
+		CommandToggleHideWhenEmpty = "/esph",
 		NoticeClickStatusToClearSearch = "Click to clear your current search.",
 		NoticeUsageReminder = $"No search is currently active.\nUse {CommandSetSubstring}, {CommandSetGlob}, or {CommandSetRegex} to set a substring, glob, or regex search.",
 		NoticeOnlyOneSearchAllowed = " Clears other search patterns on use.",
@@ -86,8 +87,10 @@ public class Plugin: IDalamudPlugin {
 		ipcSetGlob,
 		ipcSetRegex;
 
+	internal Configuration Config { get; private set; }
+
 	#region Services
-	[PluginService] public static DalamudPluginInterface Interface { get; private set; } = null!;
+	[PluginService] public static IDalamudPluginInterface Interface { get; private set; } = null!;
 	[PluginService] public static IObjectTable GameObjects { get; private set; } = null!;
 	[PluginService] public static IGameGui GameGui { get; private set; } = null!;
 	[PluginService] public static ICommandManager CommandManager { get; private set; } = null!;
@@ -95,7 +98,7 @@ public class Plugin: IDalamudPlugin {
 	[PluginService] public static ICondition Condition { get; private set; } = null!;
 	[PluginService] public static ITargetManager Target { get; private set; } = null!;
 
-	public static DtrBarEntry StatusEntry { get; private set; } = null!;
+	public static IDtrBarEntry StatusEntry { get; private set; } = null!;
 	public static string StatusText {
 		get => StatusEntry?.Text?.TextValue ?? string.Empty;
 		set {
@@ -120,6 +123,8 @@ public class Plugin: IDalamudPlugin {
 	#endregion
 
 	public Plugin(IDtrBar dtr) {
+		this.Config = Interface.GetPluginConfig() as Configuration ?? new();
+
 		CommandManager.AddHandler(CommandSetSubstring, new(this.onCommand) {
 			ShowInHelp = true,
 			HelpMessage = "Set a case-insensitive substring to search for matchingly-named nearby objects, or display your current search pattern and type." + NoticeOnlyOneSearchAllowed,
@@ -139,6 +144,10 @@ public class Plugin: IDalamudPlugin {
 		CommandManager.AddHandler(CommandClearSearch, new(this.onCommand) {
 			ShowInHelp = true,
 			HelpMessage = "Clear your current ESP search and stop tagging things.",
+		});
+		CommandManager.AddHandler(CommandToggleHideWhenEmpty, new(this.onCommand) {
+			ShowInHelp = true,
+			HelpMessage = "Toggle hiding the server info bar entry when no search is set.",
 		});
 		Interface.UiBuilder.Draw += this.onDraw;
 		StatusEntry ??= dtr.Get(Name);
@@ -173,7 +182,7 @@ public class Plugin: IDalamudPlugin {
 		this.ipcSetRegex.RegisterAction(this.SetRegexSearch);
 	}
 
-	public bool CheckGameObject(GameObject thing) => GameObject.IsValid(thing) && thing.IsTargetable && !thing.IsDead && this.CheckMatch(thing);
+	public bool CheckGameObject(IGameObject thing) => thing is not null && thing.IsValid() && thing.IsTargetable && !thing.IsDead && this.CheckMatch(thing);
 
 	private void onDraw() {
 		if (Condition.Any(disabledConditions))
@@ -189,7 +198,7 @@ public class Plugin: IDalamudPlugin {
 			ImDrawListPtr draw = ImGui.GetWindowDrawList();
 			Vector2 drawable = gameWindow.Size - style.DisplaySafeAreaPadding;
 
-			foreach (GameObject thing in GameObjects.Where(this.CheckGameObject)) {
+			foreach (IGameObject thing in GameObjects.Where(this.CheckGameObject)) {
 				if (!GameGui.WorldToScreen(thing.Position, out Vector2 pos))
 					continue;
 				string label = thing.Name.TextValue;
@@ -222,6 +231,12 @@ public class Plugin: IDalamudPlugin {
 			this.PrintUpdatedSearch();
 			return;
 		}
+		if (command.Equals(CommandToggleHideWhenEmpty, NoCase)) {
+			this.Config.HideInfoBarEntryWhenNoSearchSet ^= true;
+			Interface.SavePluginConfig(this.Config);
+			PrintInfoBarState(this.Config.HideInfoBarEntryWhenNoSearchSet);
+			return;
+		}
 
 		if (string.IsNullOrEmpty(arguments) && command is not CommandSearchForTargetSubstring) {
 			this.PrintCurrentSearch();
@@ -246,9 +261,9 @@ public class Plugin: IDalamudPlugin {
 					this.GlobPattern = null;
 					break;
 				case CommandSearchForTargetSubstring: {
-						if (Target.SoftTarget is GameObject soft)
+						if (Target.SoftTarget is IGameObject soft)
 							this.onCommand(CommandSetSubstring, soft.Name.TextValue);
-						else if (Target.Target is GameObject hard)
+						else if (Target.Target is IGameObject hard)
 							this.onCommand(CommandSetSubstring, hard.Name.TextValue);
 						else
 							PrintMissingTarget();
@@ -331,9 +346,19 @@ public class Plugin: IDalamudPlugin {
 		ChatColourGlobNotSubstring = 12,
 		ChatColourSearchCleared = 22,
 		ChatColourNoSearchFound = 14,
+		ChatColourInfoBarState = 67,
 		ChatColourError = 17;
 	internal static SeStringBuilder StartChatMessage() => new SeStringBuilder().AddUiForeground(ChatColourPluginName).AddText($"[{Name}]").AddUiForegroundOff();
 
+	public static void PrintInfoBarState(bool hiddenWhenEmpty) {
+		ChatGui.Print(StartChatMessage()
+			.AddText("Server info bar entry will be ")
+			.AddUiForeground(ChatColourInfoBarState)
+			.AddText(hiddenWhenEmpty ? "visible" : "hidden")
+			.AddUiForegroundOff()
+			.AddText(" when no search is set.")
+			.BuiltString);
+	}
 	public static void PrintInvalidSearch() {
 		ChatGui.PrintError(StartChatMessage()
 			.AddUiForeground(ChatColourError)
@@ -449,7 +474,7 @@ public class Plugin: IDalamudPlugin {
 				: this.Regex is not null && this.Regex.IsMatch(name)
 			);
 	}
-	public bool CheckMatch(GameObject thing) => this.CheckMatch(thing.Name.TextValue);
+	public bool CheckMatch(IGameObject thing) => this.CheckMatch(thing.Name.TextValue);
 
 	private string substringSearch = string.Empty;
 	[AllowNull]
@@ -486,7 +511,7 @@ public class Plugin: IDalamudPlugin {
 			CommandManager.RemoveHandler(CommandSetRegex);
 			CommandManager.RemoveHandler(CommandClearSearch);
 			Interface.UiBuilder.Draw -= this.onDraw;
-			StatusEntry.Dispose();
+			StatusEntry.Remove();
 		}
 	}
 	public void Dispose() {

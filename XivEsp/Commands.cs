@@ -72,7 +72,6 @@ public class Commands: IDisposable {
 					Chat.PrintDevFuckedUp();
 					break;
 			}
-			SearchManager.Update();
 		}
 		catch (ArgumentException) {
 			Chat.PrintInvalidSearch();

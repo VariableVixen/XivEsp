@@ -16,6 +16,16 @@ internal static class Chat {
 			.AddText(" when no search is set.")
 			.Print();
 	}
+
+	public static void PrintPvpWarning() {
+		startChatMessage()
+			.AddUiForeground(Constants.ChatColourError)
+			.AddText("You are currently in a PvP zone.")
+			.AddUiForegroundOff()
+			.AddText($"\nESP is disabled while in PvP.")
+			.Print();
+	}
+
 	public static void PrintInvalidSearch() {
 		Service.ChatGui.PrintError(startChatMessage()
 			.AddUiForeground(Constants.ChatColourError)
@@ -24,6 +34,7 @@ internal static class Chat {
 			.BuiltString
 		);
 	}
+
 	public static void PrintMissingTarget() {
 		Service.ChatGui.PrintError(startChatMessage()
 			.AddUiForeground(Constants.ChatColourError)
@@ -32,7 +43,8 @@ internal static class Chat {
 			.BuiltString
 		);
 	}
-	public static void PrintUpdatedSearch() { // TODO add a warning about not working in PVP
+
+	public static void PrintUpdatedSearch() {
 		SeStringBuilder msg = startChatMessage();
 		if (!string.IsNullOrEmpty(SearchManager.Substring)) {
 			msg
@@ -71,8 +83,11 @@ internal static class Chat {
 				.AddUiForegroundOff();
 		}
 		msg.Print();
+
+		if (Service.ClientState.IsPvP)
+			PrintPvpWarning();
 	}
-	public static void PrintCurrentSearch() { // TODO add a warning about not working in PVP
+	public static void PrintCurrentSearch() {
 		SeStringBuilder msg = startChatMessage();
 		if (!string.IsNullOrEmpty(SearchManager.Substring)) {
 			msg
@@ -102,7 +117,11 @@ internal static class Chat {
 				.AddUiForegroundOff();
 		}
 		msg.Print();
+
+		if (Service.ClientState.IsPvP)
+			PrintPvpWarning();
 	}
+
 	public static void PrintDevFuckedUp() {
 		startChatMessage()
 			.AddUiForeground(Constants.ChatColourError)

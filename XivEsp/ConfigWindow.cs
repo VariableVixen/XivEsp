@@ -24,9 +24,6 @@ internal class ConfigWindow: Window {
 
 	public override void Draw() {
 		bool save = false;
-		if (Service.ClientState.IsPvP) {
-			// TODO pvp warning
-		}
 
 		bool dtrVisModeChanged = ImGui.Checkbox("Hide server info bar entry when no search is set?", ref Service.Config.HideInfoBarEntryWhenNoSearchSet);
 		save |= dtrVisModeChanged;

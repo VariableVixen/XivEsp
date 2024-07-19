@@ -5,7 +5,7 @@ using Dalamud.Plugin;
 namespace PrincessRTFM.XivEsp;
 
 public class Plugin: IDalamudPlugin {
-
+	private bool wasInPvp = false;
 	internal ConfigWindow ConfigWindow { get; }
 
 	public Plugin(IDalamudPluginInterface pluginInterface) {
@@ -21,7 +21,26 @@ public class Plugin: IDalamudPlugin {
 		Service.Interface.UiBuilder.OpenMainUi += this.ConfigWindow.Toggle;
 		Service.Interface.UiBuilder.OpenConfigUi += this.ConfigWindow.Toggle;
 
-		// TODO add handler for entering PVP to print a message about not working there
+		Service.ClientState.Login += this.PvpWarningCheck;
+		Service.ClientState.EnterPvP += this.PvpWarningCheck;
+		Service.ClientState.LeavePvP += this.PvpWarningCheck;
+		Service.ClientState.Logout += this.PvpWarningCheck;
+
+		if (Service.ClientState.IsLoggedIn)
+			this.PvpWarningCheck();
+	}
+
+	internal void PvpWarningCheck() {
+		if (!Service.ClientState.IsLoggedIn || !Service.ClientState.IsPvP) {
+			this.wasInPvp = false;
+			return;
+		}
+
+		if (this.wasInPvp)
+			return;
+		this.wasInPvp = true;
+
+		Chat.PrintPvpWarning();
 	}
 
 	#region Disposable

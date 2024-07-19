@@ -19,7 +19,7 @@ internal static class Chat {
 	public static void PrintInvalidSearch() {
 		Service.ChatGui.PrintError(startChatMessage()
 			.AddUiForeground(Constants.ChatColourError)
-			.AddText(" Invalid pattern, please check your syntax")
+			.AddText(" Invalid pattern, please check your syntax.")
 			.AddUiForegroundOff()
 			.BuiltString
 		);
@@ -27,7 +27,7 @@ internal static class Chat {
 	public static void PrintMissingTarget() {
 		Service.ChatGui.PrintError(startChatMessage()
 			.AddUiForeground(Constants.ChatColourError)
-			.AddText(" You don't have a target")
+			.AddText(" You don't have a target.")
 			.AddUiForegroundOff()
 			.BuiltString
 		);

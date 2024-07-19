@@ -24,7 +24,7 @@ public class Commands: IDisposable {
 		});
 		cmds.AddHandler(Constants.CommandSearchForTargetSubstring, new(this.HandleCommand) {
 			ShowInHelp = true,
-			HelpMessage = "Set your search to the name of your current (hard or soft) target. Uses a plain substring." + Constants.NoticeOnlyOneSearchAllowed,
+			HelpMessage = "Set your search to the name of your current (soft, hard, or focus) target. Uses a plain substring." + Constants.NoticeOnlyOneSearchAllowed,
 		});
 		cmds.AddHandler(Constants.CommandClearSearch, new(this.HandleCommand) {
 			ShowInHelp = true,
@@ -61,6 +61,9 @@ public class Commands: IDisposable {
 						}
 						else if (Service.Targets.Target is IGameObject hard) {
 							SearchManager.Substring = hard.Name.TextValue;
+						}
+						else if (Service.Targets.FocusTarget is IGameObject focus) {
+							SearchManager.Substring = focus.Name.TextValue;
 						}
 						else {
 							Chat.PrintMissingTarget();

@@ -24,7 +24,7 @@ public class Plugin: IDalamudPlugin {
 		Service.ClientState.Login += this.PvpWarningCheck;
 		Service.ClientState.EnterPvP += this.PvpWarningCheck;
 		Service.ClientState.LeavePvP += this.PvpWarningCheck;
-		Service.ClientState.Logout += this.PvpWarningCheck;
+		Service.ClientState.Logout += this.PvpWarningCheckLogout;
 
 		if (Service.ClientState.IsLoggedIn)
 			this.PvpWarningCheck();
@@ -42,6 +42,8 @@ public class Plugin: IDalamudPlugin {
 
 		Chat.PrintPvpWarning();
 	}
+
+	internal void PvpWarningCheckLogout(int type, int code) => this.PvpWarningCheck();
 
 	#region Disposable
 	private bool disposed;

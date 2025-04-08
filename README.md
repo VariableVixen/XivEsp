@@ -1,10 +1,10 @@
 # XivEsp
 _You can run, but you can't hide!_
 
-![GitHub build status](https://img.shields.io/github/actions/workflow/status/PrincessRTFM/XivEsp/build.yml?logo=github)
-![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/PrincessRTFM/XivEsp?label=version&color=informational)
-![GitHub last commit (branch)](https://img.shields.io/github/last-commit/PrincessRTFM/XivEsp/main?label=updated)
-[![GitHub issues](https://img.shields.io/github/issues-raw/PrincessRTFM/XivEsp?label=known%20issues)](https://github.com/PrincessRTFM/XivEsp/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc)
+![GitHub build status](https://img.shields.io/github/actions/workflow/status/VariableVixen/XivEsp/build.yml?logo=github)
+![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/VariableVixen/XivEsp?label=version&color=informational)
+![GitHub last commit (branch)](https://img.shields.io/github/last-commit/VariableVixen/XivEsp/main?label=updated)
+[![GitHub issues](https://img.shields.io/github/issues-raw/VariableVixen/XivEsp?label=known%20issues)](https://github.com/VariableVixen/XivEsp/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc)
 
 [![Support me!](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/V7V7IK9UU)
 
@@ -14,7 +14,7 @@ XivEsp is a plugin designed to help you find things in the world, in a simple an
 This is clearly useful for things you _always_ want to highlight, but what about doing hunts? If you're just trying to find a particular mob for a few kills, that's a decent bit of work, especially when you then have to open it back up to delete the layout when you're done. In contrast, XivEsp only needs you to run one command to set the name you're looking for, and then another command (or just click the server info bar entry!) to clear it when you're finished. If you just want to quickly locate something by name for a brief time, that's _much_ easier!
 
 ## Installation
-Type `/xlplugins` in-game to access the plugin installer and updater. Note that you will need to add [my custom plugin repository](https://github.com/PrincessRTFM/MyDalamudPlugins) (full instructions included at that link) in order to find this plugin.
+Type `/xlplugins` in-game to access the plugin installer and updater. Note that you will need to add [my custom plugin repository](https://github.com/VariableVixen/MyDalamudPlugins) (full instructions included at that link) in order to find this plugin.
 
 ## In-game usage
 There are four commands in XivEsp, although one is optional and two are more advanced than most people will need. The most common one you'll be using is `/esp <text to search for>` - this sets a case-insensitive _substring_ pattern, which means that any game objects (loaded on your client) whose names contain that text will be located. If you're trying to hunt, for instance, the White Joker for your ARR weekly elite hunt, you could do `/esp joker` and it will be matched.

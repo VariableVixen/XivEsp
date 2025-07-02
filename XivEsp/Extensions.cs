@@ -1,7 +1,7 @@
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 
-namespace PrincessRTFM.XivEsp;
+namespace VariableVixen.XivEsp;
 
 internal static class Extensions {
 

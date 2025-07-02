@@ -10,7 +10,7 @@ using DotNet.Globbing;
 
 using ImGuiNET;
 
-namespace PrincessRTFM.XivEsp;
+namespace VariableVixen.XivEsp;
 
 public static class SearchManager {
 	public const RegexOptions PatternMatchOptions = RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline;
@@ -105,20 +105,20 @@ public static class SearchManager {
 			ImDrawListPtr draw = ImGui.GetWindowDrawList();
 			Vector2 drawable = gameWindow.Size - style.DisplaySafeAreaPadding;
 
-			foreach (IGameObject thing in Service.GameObjects.Where(SearchManager.FilterGameObject)) {
+			foreach (IGameObject thing in Service.GameObjects.Where(FilterGameObject)) {
 				if (!Service.GameGui.WorldToScreen(thing.Position, out Vector2 pos))
 					continue;
 				string label = thing.Name.TextValue;
 				Vector2 size = ImGui.CalcTextSize(label);
 				Vector2 offset = new(Constants.DrawCircleRadius + Constants.DrawLabelOffsetDistance);
 				Vector2 inside = pos + offset;
-				Vector2 outside = inside + size + (style.CellPadding * 2);
+				Vector2 outside = inside + size + style.CellPadding * 2;
 				if (outside.X >= drawable.X)
-					offset.X = -(Constants.DrawCircleRadius + Constants.DrawLabelOffsetDistance + size.X + (style.CellPadding.X * 2));
+					offset.X = -(Constants.DrawCircleRadius + Constants.DrawLabelOffsetDistance + size.X + style.CellPadding.X * 2);
 				if (outside.Y >= drawable.Y)
-					offset.Y = -(Constants.DrawCircleRadius + Constants.DrawLabelOffsetDistance + size.Y + (style.CellPadding.Y * 2));
+					offset.Y = -(Constants.DrawCircleRadius + Constants.DrawLabelOffsetDistance + size.Y + style.CellPadding.Y * 2);
 				inside = pos + offset;
-				outside = inside + size + (style.CellPadding * 2);
+				outside = inside + size + style.CellPadding * 2;
 
 				draw.AddCircle(pos, Constants.DrawCircleRadius, Constants.DrawColourTargetCircle, 20, 3);
 				draw.AddRectFilled(inside, outside, Constants.DrawColourLabelBackground, 5, ImDrawFlags.RoundCornersAll);
@@ -136,9 +136,8 @@ public static class SearchManager {
 	public static string Substring {
 		get => substringSearch;
 		set {
-			if (string.IsNullOrEmpty(value)) {
+			if (string.IsNullOrEmpty(value))
 				substringSearch = string.Empty;
-			}
 			else {
 				substringSearch = value;
 				Glob = null;
@@ -153,9 +152,8 @@ public static class SearchManager {
 	public static string GlobPattern {
 		get => Glob?.ToString() ?? string.Empty;
 		set {
-			if (string.IsNullOrEmpty(value)) {
+			if (string.IsNullOrEmpty(value))
 				Glob = null;
-			}
 			else {
 				substringSearch = string.Empty;
 				Glob = Glob.Parse(value, GlobMatchOptions);
@@ -170,9 +168,8 @@ public static class SearchManager {
 	public static string RegexPattern {
 		get => Regex?.ToString() ?? string.Empty;
 		set {
-			if (string.IsNullOrEmpty(value)) {
+			if (string.IsNullOrEmpty(value))
 				Regex = null;
-			}
 			else {
 				substringSearch = string.Empty;
 				Glob = null;

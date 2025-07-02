@@ -3,7 +3,7 @@ using System;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Ipc;
 
-namespace PrincessRTFM.XivEsp;
+namespace VariableVixen.XivEsp;
 
 public class IPC: IDisposable {
 	private readonly ICallGateProvider<string>

@@ -2,7 +2,7 @@ using System;
 
 using Dalamud.Plugin;
 
-namespace PrincessRTFM.XivEsp;
+namespace VariableVixen.XivEsp;
 
 public class Plugin: IDalamudPlugin {
 	private bool wasInPvp = false;

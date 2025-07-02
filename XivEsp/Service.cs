@@ -7,7 +7,7 @@ using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 
-namespace PrincessRTFM.XivEsp;
+namespace VariableVixen.XivEsp;
 
 internal class Service {
 

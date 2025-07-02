@@ -2,7 +2,7 @@ using System.Linq;
 
 using Dalamud.Game.Text.SeStringHandling;
 
-namespace PrincessRTFM.XivEsp;
+namespace VariableVixen.XivEsp;
 
 internal static class Chat {
 	private static SeStringBuilder startChatMessage() => new SeStringBuilder().AddUiForeground(Constants.ChatColourPluginName).AddText($"[{Constants.PluginName}]").AddUiForegroundOff();

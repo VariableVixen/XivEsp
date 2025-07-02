@@ -3,7 +3,7 @@ using System;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Plugin.Services;
 
-namespace PrincessRTFM.XivEsp;
+namespace VariableVixen.XivEsp;
 
 public class Commands: IDisposable {
 
@@ -56,9 +56,8 @@ public class Commands: IDisposable {
 					SearchManager.RegexPattern = arguments;
 					break;
 				case Constants.CommandSearchForTargetSubstring: {
-						if (Service.Targets.SoftTarget is IGameObject soft) {
+						if (Service.Targets.SoftTarget is IGameObject soft)
 							SearchManager.Substring = soft.Name.TextValue;
-						}
 						else if (Service.Targets.Target is IGameObject hard) {
 							SearchManager.Substring = hard.Name.TextValue;
 						}

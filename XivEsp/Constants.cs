@@ -5,7 +5,7 @@ using Dalamud.Game.ClientState.Conditions;
 
 using ImGuiNET;
 
-namespace PrincessRTFM.XivEsp;
+namespace VariableVixen.XivEsp;
 
 internal static class Constants {
 

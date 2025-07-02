@@ -1,7 +1,7 @@
 using Dalamud.Configuration;
 using Dalamud.Game.Text;
 
-namespace PrincessRTFM.XivEsp;
+namespace VariableVixen.XivEsp;
 
 internal class Configuration: IPluginConfiguration {
 	public int Version { get; set; } = 1;

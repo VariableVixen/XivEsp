@@ -6,10 +6,10 @@ using Dalamud.Interface.Windowing;
 
 using ImGuiNET;
 
-namespace PrincessRTFM.XivEsp;
+namespace VariableVixen.XivEsp;
 
 internal class ConfigWindow: Window {
-	internal ConfigWindow() : base($"{Constants.PluginName}Config", ImGuiNET.ImGuiWindowFlags.AlwaysAutoResize) {
+	internal ConfigWindow() : base($"{Constants.PluginName}Config", ImGuiWindowFlags.AlwaysAutoResize) {
 		this.AllowClickthrough = false;
 		this.AllowPinning = true;
 		this.SizeConstraints = new WindowSizeConstraints() {

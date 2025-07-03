@@ -2,119 +2,88 @@ using System.Linq;
 
 using Dalamud.Game.Text.SeStringHandling;
 
+using VariableVixen.XivEsp.Filters;
+
 namespace VariableVixen.XivEsp;
 
 internal static class Chat {
-	private static SeStringBuilder startChatMessage() => new SeStringBuilder().AddUiForeground(Constants.ChatColourPluginName).AddText($"[{Constants.PluginName}]").AddUiForegroundOff();
+	internal static SeStringBuilder StartChatMessage() => new SeStringBuilder().AddText($"[{Constants.PluginName}]", Constants.ChatColourPluginName);
 
 	public static void PrintInfoBarState() {
-		startChatMessage()
+		StartChatMessage()
 			.AddText("Server info bar entry will be ")
-			.AddUiForeground(Constants.ChatColourInfoBarState)
-			.AddText(Service.Config.HideInfoBarEntryWhenNoSearchSet ? "visible" : "hidden")
-			.AddUiForegroundOff()
+			.AddText(Service.Config.HideInfoBarEntryWhenNoSearchSet ? "visible" : "hidden", Constants.ChatColourInfoBarState)
 			.AddText(" when no search is set.")
 			.Print();
 	}
 
 	public static void PrintPvpWarning() {
-		startChatMessage()
-			.AddUiForeground(Constants.ChatColourError)
-			.AddText("You are currently in a PvP zone.")
-			.AddUiForegroundOff()
+		StartChatMessage()
+			.AddText("You are currently in a PvP zone.", Constants.ChatColourError)
 			.AddText($"\nESP is disabled while in PvP.")
 			.Print();
 	}
 
 	public static void PrintInvalidSearch() {
-		Service.ChatGui.PrintError(startChatMessage()
-			.AddUiForeground(Constants.ChatColourError)
-			.AddText(" Invalid pattern, please check your syntax.")
-			.AddUiForegroundOff()
+		Service.ChatGui.PrintError(StartChatMessage()
+			.AddText(" Invalid pattern, please check your syntax.", Constants.ChatColourError)
 			.BuiltString
 		);
 	}
 
 	public static void PrintMissingTarget() {
-		Service.ChatGui.PrintError(startChatMessage()
-			.AddUiForeground(Constants.ChatColourError)
-			.AddText(" You don't have a target.")
-			.AddUiForegroundOff()
+		Service.ChatGui.PrintError(StartChatMessage()
+			.AddText(" You don't have a target.", Constants.ChatColourError)
 			.BuiltString
 		);
 	}
 
 	public static void PrintUpdatedSearch() {
-		SeStringBuilder msg = startChatMessage();
-		if (!string.IsNullOrEmpty(SearchManager.Substring)) {
-			msg
-				.AddText(" Set substring pattern: ")
-				.AddUiForeground(Constants.ChatColourSearchSubstring)
-				.AddText(SearchManager.Substring)
-				.AddUiForegroundOff();
-		}
-		else if (SearchManager.Glob is not null) {
-			msg
-				.AddText(" Set glob pattern: ")
-				.AddUiForeground(Constants.ChatColourSearchGlob)
-				.AddText(SearchManager.GlobPattern)
-				.AddUiForegroundOff();
-			if (!Constants.GlobSpecialChars.Any(SearchManager.GlobPattern.Contains)) {
-				msg
-					.AddUiForeground(Constants.ChatColourGlobNotSubstring)
-					.AddText("\nWarning: globs are ")
-					.AddItalics("not")
-					.AddText(" substring searches!")
-					.AddUiForegroundOff()
-					.AddText($" If you want to match your pattern anywhere in an object's name, use {Constants.CommandSetSubstring} instead!");
-			}
-		}
-		else if (SearchManager.Regex is not null) {
-			msg
-				.AddText(" Set regex pattern: ")
-				.AddUiForeground(Constants.ChatColourSearchGlob)
-				.AddText(SearchManager.RegexPattern)
-				.AddUiForegroundOff();
+		ushort foreground = SearchManager.Filter switch {
+			NameSubstringFilter => Constants.ChatColourSearchSubstring,
+			NameGlobFilter => Constants.ChatColourSearchGlob,
+			NameRegexFilter => Constants.ChatColourSearchRegex,
+			_ => Constants.ChatColourSearchByType,
+		};
+		SeStringBuilder msg = StartChatMessage();
+		if (SearchManager.Filter is null) {
+			msg.AddText(" Cleared search filter", Constants.ChatColourSearchCleared);
 		}
 		else {
 			msg
-				.AddUiForeground(Constants.ChatColourSearchCleared)
-				.AddText(" Cleared search pattern")
-				.AddUiForegroundOff();
+				.AddText($" Set {SearchManager.Filter.FilterType.ToLower()} filter: ")
+				.AddText(SearchManager.Filter.FilterLabel, foreground);
+		}
+		if (SearchManager.Filter is NameGlobFilter f && !Constants.GlobSpecialChars.Any(f.Pattern.Contains)) {
+			msg
+				.AddUiForeground(Constants.ChatColourGlobNotSubstring)
+				.AddText("\nWarning: globs are ")
+				.AddItalics("not")
+				.AddText(" substring searches!")
+				.AddUiForegroundOff()
+				.AddText($" If you want to match your filter anywhere in an object's name, use '{Constants.Command} substring' instead!");
 		}
 		msg.Print();
 
 		if (Service.ClientState.IsPvP)
 			PrintPvpWarning();
 	}
+
 	public static void PrintCurrentSearch() {
-		SeStringBuilder msg = startChatMessage();
-		if (!string.IsNullOrEmpty(SearchManager.Substring)) {
-			msg
-				.AddUiForeground(Constants.ChatColourSearchSubstring)
-				.AddText("[Substring]")
-				.AddUiForegroundOff()
-				.AddText(SearchManager.Substring);
-		}
-		else if (SearchManager.Glob is not null) {
-			msg
-				.AddUiForeground(Constants.ChatColourSearchGlob)
-				.AddText("[Glob]")
-				.AddUiForegroundOff()
-				.AddText(SearchManager.GlobPattern);
-		}
-		else if (SearchManager.Regex is not null) {
-			msg
-				.AddUiForeground(Constants.ChatColourSearchRegex)
-				.AddText("[Regex]")
-				.AddUiForegroundOff()
-				.AddText(SearchManager.RegexPattern);
+		ushort foreground = SearchManager.Filter switch {
+			NameSubstringFilter => Constants.ChatColourSearchSubstring,
+			NameGlobFilter => Constants.ChatColourSearchGlob,
+			NameRegexFilter => Constants.ChatColourSearchRegex,
+			_ => Constants.ChatColourSearchByType,
+		};
+		SeStringBuilder msg = StartChatMessage();
+		if (SearchManager.Filter is null) {
+			msg.AddText(" No filter set", Constants.ChatColourSearchCleared);
 		}
 		else {
 			msg
-				.AddUiForeground(Constants.ChatColourNoSearchFound)
-				.AddText(" No search active")
-				.AddUiForegroundOff();
+				.AddText($"[{SearchManager.Filter.FilterType}]", foreground)
+				.AddText(SearchManager.Filter.FilterLabel);
 		}
 		msg.Print();
 
@@ -122,11 +91,5 @@ internal static class Chat {
 			PrintPvpWarning();
 	}
 
-	public static void PrintDevFuckedUp() {
-		startChatMessage()
-			.AddUiForeground(Constants.ChatColourError)
-			.AddText(" Internal error: unexpected state")
-			.AddUiForegroundOff()
-			.Print();
-	}
+	public static void PrintDevFuckedUp() => StartChatMessage().AddText(" Internal error: unexpected state", Constants.ChatColourError).Print();
 }

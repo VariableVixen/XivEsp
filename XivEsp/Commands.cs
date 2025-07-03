@@ -3,6 +3,8 @@ using System;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Plugin.Services;
 
+using VariableVixen.XivEsp.Filters;
+
 namespace VariableVixen.XivEsp;
 
 public class Commands: IDisposable {
@@ -10,68 +12,71 @@ public class Commands: IDisposable {
 	internal Commands() {
 		ICommandManager cmds = Service.CommandManager;
 
-		cmds.AddHandler(Constants.CommandSetSubstring, new(this.HandleCommand) {
+		cmds.AddHandler(Constants.Command, new(this.HandleCommand) {
 			ShowInHelp = true,
-			HelpMessage = "Set a case-insensitive substring to search for matchingly-named nearby objects, or display your current search pattern and type." + Constants.NoticeOnlyOneSearchAllowed,
-		});
-		cmds.AddHandler(Constants.CommandSetGlob, new(this.HandleCommand) {
-			ShowInHelp = true,
-			HelpMessage = "Set a case-insensitive glob pattern to search for matchingly-named nearby objects, or display your current search pattern and type." + Constants.NoticeOnlyOneSearchAllowed,
-		});
-		cmds.AddHandler(Constants.CommandSetRegex, new(this.HandleCommand) {
-			ShowInHelp = true,
-			HelpMessage = "Set a case-insensitive regex pattern to search for matchingly-named nearby objects, or display your current search pattern and type." + Constants.NoticeOnlyOneSearchAllowed,
-		});
-		cmds.AddHandler(Constants.CommandSearchForTargetSubstring, new(this.HandleCommand) {
-			ShowInHelp = true,
-			HelpMessage = "Set your search to the name of your current (soft, hard, or focus) target. Uses a plain substring." + Constants.NoticeOnlyOneSearchAllowed,
-		});
-		cmds.AddHandler(Constants.CommandClearSearch, new(this.HandleCommand) {
-			ShowInHelp = true,
-			HelpMessage = "Clear your current ESP search and stop tagging things.",
+			HelpMessage = "Check or change the active filter. Subcommands:"
+				+ $"\n{Constants.Command} clear -> clear the current filter"
+				+ $"\n{Constants.Command} target -> set a substring filter for the full name of your current (soft/hard/focus) target"
+				+ $"\n{Constants.Command} substring|substr|sub (text) -> set a literal substring name filter"
+				+ $"\n{Constants.Command} glob (pattern) -> set a glob name filter"
+				+ $"\n{Constants.Command} regex (pattern) -> set a regex name filter"
+				+ $"\n{Constants.Command} npc|any -> filter to tag all non-player objects"
+				+ $"\n{Constants.Command} current|check -> show current filter (can also omit the subcommand)",
 		});
 
 	}
 
 	internal void HandleCommand(string command, string arguments) {
-		if (command.Equals(Constants.CommandClearSearch, Constants.StrCompNoCase)) {
-			SearchManager.ClearSearch();
-			return;
-		}
-
-		if (string.IsNullOrEmpty(arguments) && command is not Constants.CommandSearchForTargetSubstring) {
-			Chat.PrintCurrentSearch();
-			return;
+		arguments = arguments.Trim();
+		string subcommand = arguments;
+		int firstSpace = arguments.IndexOf(' ');
+		if (firstSpace > -1) {
+			subcommand = arguments[..firstSpace];
+			arguments = arguments[firstSpace..].Trim();
 		}
 
 		try {
-			switch (command) {
-				case Constants.CommandSetSubstring:
-					SearchManager.Substring = arguments;
+			switch (subcommand.ToLower()) {
+				case "clear":
+					SearchManager.ClearSearch();
 					break;
-				case Constants.CommandSetGlob:
-					SearchManager.GlobPattern = arguments;
-					break;
-				case Constants.CommandSetRegex:
-					SearchManager.RegexPattern = arguments;
-					break;
-				case Constants.CommandSearchForTargetSubstring: {
-						if (Service.Targets.SoftTarget is IGameObject soft)
-							SearchManager.Substring = soft.Name.TextValue;
-						else if (Service.Targets.Target is IGameObject hard) {
-							SearchManager.Substring = hard.Name.TextValue;
-						}
-						else if (Service.Targets.FocusTarget is IGameObject focus) {
-							SearchManager.Substring = focus.Name.TextValue;
-						}
-						else {
-							Chat.PrintMissingTarget();
-							return;
-						}
+				case "target":
+					if (Service.Targets.SoftTarget is IGameObject soft) {
+						SearchManager.Filter = new NameSubstringFilter(soft.Name.TextValue);
+					}
+					else if (Service.Targets.Target is IGameObject hard) {
+						SearchManager.Filter = new NameSubstringFilter(hard.Name.TextValue);
+					}
+					else if (Service.Targets.FocusTarget is IGameObject focus) {
+						SearchManager.Filter = new NameSubstringFilter(focus.Name.TextValue);
+					}
+					else {
+						Chat.PrintMissingTarget();
+						return;
 					}
 					break;
-				default: // unpossible!
-					Chat.PrintDevFuckedUp();
+				case "substring":
+				case "substr":
+				case "sub":
+					SearchManager.Filter = new NameSubstringFilter(arguments);
+					break;
+				case "glob":
+					SearchManager.Filter = new NameGlobFilter(arguments);
+					break;
+				case "regex":
+					SearchManager.Filter = new NameRegexFilter(arguments);
+					break;
+				case "npc":
+				case "any":
+				case "all":
+					SearchManager.Filter = new AnyNonPlayerFilter();
+					break;
+				case "current":
+				case "":
+					Chat.PrintCurrentSearch();
+					break;
+				default: // unknown subcommand
+					Chat.StartChatMessage().AddText($" Unknown subcommand: {subcommand}", Constants.ChatColourError).Print();
 					break;
 			}
 		}
@@ -91,11 +96,7 @@ public class Commands: IDisposable {
 		if (disposing) {
 			ICommandManager cmds = Service.CommandManager;
 
-			cmds.RemoveHandler(Constants.CommandSetSubstring);
-			cmds.RemoveHandler(Constants.CommandSetGlob);
-			cmds.RemoveHandler(Constants.CommandSetRegex);
-			cmds.RemoveHandler(Constants.CommandSearchForTargetSubstring);
-			cmds.RemoveHandler(Constants.CommandClearSearch);
+			cmds.RemoveHandler(Constants.Command);
 		}
 	}
 

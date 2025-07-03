@@ -12,22 +12,11 @@ internal static class Constants {
 	public const string
 		PluginName = "XivEsp",
 
-		CommandSetSubstring = "/esp",
-		CommandSetGlob = "/espg",
-		CommandSetRegex = "/espr",
-		CommandSearchForTargetSubstring = "/espt",
-		CommandClearSearch = "/espc",
+		Command = "/esp",
 
 		NoticeClickStatusToClearSearch = "Click to clear your current search.",
-		NoticeUsageReminder = $"No search is currently active.\nUse {CommandSetSubstring}, {CommandSetGlob}, or {CommandSetRegex} to set a substring, glob, or regex search.",
-		NoticeOnlyOneSearchAllowed = " Clears other search patterns on use.",
+		NoticeUsageReminder = $"No search is currently active.\nUse {Command} to set one.",
 		NoticeDisabledInPvp = "ESP is disabled in PVP areas.",
-
-		StatusIndicatorSubstring = "S",
-		StatusIndicatorGlob = "G",
-		StatusIndicatorRegex = "R",
-		StatusIndicatorDisabled = "X",
-		StatusIndicatorNone = "N",
 
 		IpcNameGetSubstringSearch = $"{PluginName}.GetSubstring", // void => string
 		IpcNameGetGlobSearch = $"{PluginName}.GetGlob", // void => string
@@ -53,6 +42,7 @@ internal static class Constants {
 		ChatColourSearchSubstring = 34,
 		ChatColourSearchGlob = 43,
 		ChatColourSearchRegex = 48,
+		ChatColourSearchByType = 52,
 		ChatColourGlobNotSubstring = 12,
 		ChatColourSearchCleared = 22,
 		ChatColourNoSearchFound = 14,
@@ -69,7 +59,7 @@ internal static class Constants {
 
 	public static readonly ImmutableArray<char> GlobSpecialChars = ['*', '?', '[', ']'];
 
-	public static readonly ImmutableArray<ConditionFlag> DisabledConditions = [
+	internal static readonly ConditionFlag[] disabledConditions = [
 		ConditionFlag.OccupiedInCutSceneEvent,
 		ConditionFlag.WatchingCutscene,
 		ConditionFlag.WatchingCutscene78,

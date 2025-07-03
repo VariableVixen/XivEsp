@@ -3,6 +3,8 @@ using System;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Ipc;
 
+using VariableVixen.XivEsp.Filters;
+
 namespace VariableVixen.XivEsp;
 
 public class IPC: IDisposable {
@@ -19,31 +21,18 @@ public class IPC: IDisposable {
 		ipcSetGlob,
 		ipcSetRegex;
 
-	public static string GetSubstringSearch() => SearchManager.Substring;
-	public static string GetGlobSearch() => SearchManager.GlobPattern;
-	public static string GetRegexSearch() => SearchManager.RegexPattern;
-	public static string GetUnifiedSearch() {
-		string
-			substring = GetSubstringSearch(),
-			glob = GetGlobSearch(),
-			regex = GetRegexSearch();
+	public static string GetSubstringSearch() => SearchManager.Filter is NameSubstringFilter f ? f.Filter : string.Empty;
+	public static string GetGlobSearch() => SearchManager.Filter is NameGlobFilter f ? f.Pattern : string.Empty;
+	public static string GetRegexSearch() => SearchManager.Filter is NameRegexFilter f ? f.Pattern : string.Empty;
+	public static string GetUnifiedSearch() => SearchManager.Filter is null ? IGameObjectFilter.IdNoFilterSet.ToString() : SearchManager.Filter.FilterId.ToString() + ":" + SearchManager.Filter.FilterLabel;
 
-		return !string.IsNullOrEmpty(substring)
-			? $"{Constants.StatusIndicatorSubstring}:{substring}"
-			: !string.IsNullOrEmpty(glob)
-			? $"{Constants.StatusIndicatorGlob}:{glob}"
-			: !string.IsNullOrEmpty(regex)
-			? $"{Constants.StatusIndicatorRegex}:{regex}"
-			: Constants.StatusIndicatorNone;
-	}
-
-	public static bool HasAnySearch() => SearchManager.HasAny;
+	public static bool HasAnySearch() => SearchManager.Filter is not null;
 
 	public static void ClearSearch() => SearchManager.ClearSearch();
 
-	public static void SetSubstringSearch(string pattern) => Service.Commands.HandleCommand(Constants.CommandSetSubstring, pattern);
-	public static void SetGlobSearch(string pattern) => Service.Commands.HandleCommand(Constants.CommandSetGlob, pattern);
-	public static void SetRegexSearch(string pattern) => Service.Commands.HandleCommand(Constants.CommandSetRegex, pattern);
+	public static void SetSubstringSearch(string pattern) => SearchManager.Filter = new NameSubstringFilter(pattern);
+	public static void SetGlobSearch(string pattern) => SearchManager.Filter = new NameGlobFilter(pattern);
+	public static void SetRegexSearch(string pattern) => SearchManager.Filter = new NameRegexFilter(pattern);
 
 	internal IPC(IDalamudPluginInterface pi) {
 

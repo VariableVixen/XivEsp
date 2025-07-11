@@ -17,7 +17,7 @@ public class Commands: IDisposable {
 			HelpMessage = "Check or change the active filter. Subcommands:"
 				+ $"\n{Constants.Command} clear -> clear the current filter"
 				+ $"\n{Constants.Command} target -> set a substring filter for the full name of your current (soft/hard/focus) target"
-				+ $"\n{Constants.Command} substring|substr|sub (text) -> set a literal substring name filter"
+				+ $"\n{Constants.Command} substring|string|substr|sub (text) -> set a literal substring name filter"
 				+ $"\n{Constants.Command} glob (pattern) -> set a glob name filter"
 				+ $"\n{Constants.Command} regex (pattern) -> set a regex name filter"
 				+ $"\n{Constants.Command} npc|any -> filter to tag all non-player objects"
@@ -56,6 +56,7 @@ public class Commands: IDisposable {
 					}
 					break;
 				case "substring":
+				case "string":
 				case "substr":
 				case "sub":
 					SearchManager.Filter = new NameSubstringFilter(arguments);

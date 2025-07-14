@@ -21,6 +21,7 @@ public class Commands: IDisposable {
 				+ $"\n{Constants.Command} glob (pattern) -> set a glob name filter"
 				+ $"\n{Constants.Command} regex (pattern) -> set a regex name filter"
 				+ $"\n{Constants.Command} npc|any -> filter to tag all non-player objects"
+				+ $"\n{Constants.Command} dol|gather -> filter to tag all gathering nodes"
 				+ $"\n{Constants.Command} current|check -> show current filter (can also omit the subcommand)",
 		});
 
@@ -71,6 +72,10 @@ public class Commands: IDisposable {
 				case "any":
 				case "all":
 					SearchManager.Filter = new AnyNonPlayerFilter();
+					break;
+				case "dol":
+				case "gather":
+					SearchManager.Filter = new AnyGatheringNodeFilter();
 					break;
 				case "current":
 				case "":

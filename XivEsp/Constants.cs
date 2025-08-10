@@ -1,9 +1,8 @@
 using System;
 using System.Collections.Immutable;
 
+using Dalamud.Bindings.ImGui;
 using Dalamud.Game.ClientState.Conditions;
-
-using ImGuiNET;
 
 namespace VariableVixen.XivEsp;
 

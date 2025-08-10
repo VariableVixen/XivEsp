@@ -1,10 +1,9 @@
 using System.Linq;
 using System.Numerics;
 
+using Dalamud.Bindings.ImGui;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Interface.Utility;
-
-using ImGuiNET;
 
 using VariableVixen.XivEsp.Filters;
 
@@ -42,12 +41,12 @@ public static class SearchManager {
 		if (Filter is not null) {
 			Service.StatusText = $"{Constants.PluginName}: {Filter.FilterId}";
 			Service.StatusTitle = $"{Filter.FilterType} filter:\n{Filter.FilterLabel}\n{Constants.NoticeClickStatusToClearSearch}";
-			Service.StatusAction = ClearSearch;
+			Service.StatusAction = _ => ClearSearch();
 		}
 		else {
 			Service.StatusText = $"{Constants.PluginName}: {IGameObjectFilter.IdNoFilterSet}";
 			Service.StatusTitle = Constants.NoticeUsageReminder;
-			Service.StatusAction = Chat.PrintCurrentSearch;
+			Service.StatusAction = _ => Chat.PrintCurrentSearch();
 		}
 	}
 

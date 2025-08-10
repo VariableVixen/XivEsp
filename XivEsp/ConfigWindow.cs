@@ -1,10 +1,9 @@
 using System;
 using System.Numerics;
 
+using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
-
-using ImGuiNET;
 
 namespace VariableVixen.XivEsp;
 

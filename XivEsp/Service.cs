@@ -43,7 +43,7 @@ internal class Service {
 				StatusEntry.Tooltip = value;
 		}
 	}
-	public static Action? StatusAction {
+	public static Action<DtrInteractionEvent>? StatusAction {
 		get => StatusEntry?.OnClick;
 		set {
 			if (StatusEntry is not null)

@@ -22,7 +22,7 @@ public interface IGameObjectFilter {
 
 	public static bool GameObjectIsAlive(IGameObject thing) => GameObjectExists(thing) && !thing.IsDead;
 
-	public static bool GameObjectIsNotPlayer(IGameObject thing) => GameObjectExists(thing) && thing.ObjectKind is not ObjectKind.Player && thing is not IPlayerCharacter;
+	public static bool GameObjectIsNotPlayer(IGameObject thing) => GameObjectExists(thing) && thing.ObjectKind is not ObjectKind.Pc && thing is not IPlayerCharacter;
 
 	#endregion
 }

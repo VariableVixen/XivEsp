@@ -49,7 +49,7 @@ internal class ConfigWindow: Window {
 	}
 
 	protected static bool EnumCombo<T>(string label, ref T refValue) where T : Enum {
-		using ImRaii.IEndObject combo = ImRaii.Combo(label, refValue.ToString());
+		using ImRaii.ComboDisposable combo = ImRaii.Combo(label, refValue.ToString());
 		if (!combo)
 			return false;
 
